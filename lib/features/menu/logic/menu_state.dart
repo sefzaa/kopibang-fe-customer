@@ -9,11 +9,6 @@ class MenuLoaded extends MenuState {
   MenuLoaded(this.menus);
 }
 
-class MenuActionSuccess extends MenuState {
-  final String message;
-  MenuActionSuccess(this.message);
-}
-
 class MenuError extends MenuState {
   final String message;
   MenuError(this.message);

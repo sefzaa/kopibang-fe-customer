@@ -5,22 +5,32 @@ import 'dashboard_state.dart';
 class DashboardCubit extends Cubit<DashboardState> {
   final DashboardRepository repository;
 
-  DashboardCubit(this.repository) : super(DashboardInitial());
+  DashboardCubit({required this.repository}) : super(DashboardInitial());
 
-  // Hapus parameter 'token', cukup sisakan 'filter'
-  Future<void> fetchDashboard({String filter = 'today'}) async {
+  Future<void> loadDashboardData() async {
     emit(DashboardLoading());
     try {
-      final data = await repository.getDashboardMetrics(filter: filter);
-
-      emit(DashboardLoaded(
-        totalSales: data['total_sales'] ?? 0,
-        totalOrders: data['total_orders'] ?? 0,
-        totalPointsRedeemed: data['total_points_redeemed'] ?? 0,
-        menuStats: data['menu_stats'] ?? [],
-      ));
+      final baristaData = await repository.getBaristaStatus();
+      final recentOrdersData = await repository.getRecentOrders();
+      emit(DashboardLoaded(baristaData, recentOrdersData));
     } catch (e) {
-      emit(DashboardError(e.toString().replaceAll('Exception: ', '')));
+      emit(DashboardError(e.toString()));
+    }
+  }
+
+  Future<String?> requestRedeemQr() async {
+    try {
+      return await repository.generateRedeemQr();
+    } catch (e) {
+      throw e.toString(); // Ubah baris ini agar error diteruskan ke UI
+    }
+  }
+
+  Future<void> processEarnQr(String token) async {
+    try {
+      await repository.scanEarnPoint(token);
+    } catch (e) {
+      throw e.toString();
     }
   }
 }

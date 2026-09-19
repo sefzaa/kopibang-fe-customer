@@ -1,55 +1,41 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/secure_storage_helper.dart'; // Import storage
 import '../data/auth_repository.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final AuthRepository repository;
+  final AuthRepository authRepository;
 
-  AuthCubit(this.repository) : super(AuthInitial());
+  AuthCubit({required this.authRepository}) : super(AuthInitial());
 
   Future<void> login(String email, String password) async {
     emit(AuthLoading());
     try {
-      final result = await repository.login(email, password);
-
-      final String accessToken = result['access_token'];
-      final String refreshToken = result['refresh_token'];
-      // Jika di payload backend ada role/status lain, bisa disesuaikan
-      final String role = result['role'] ?? 'admin';
-
-      // 1. SIMPAN TOKEN KE DALAM BRANKAS HP (Agar fitur auto-login bekerja)
-      await SecureStorageHelper.saveAuthData(accessToken, refreshToken, role);
-
-      emit(AuthAuthenticated(
-        role: role,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      ));
+      final data = await authRepository.login(email, password);
+      emit(AuthAuthenticated(data['role']));
     } catch (e) {
-      emit(AuthError(_cleanErrorMessage(e)));
+      emit(AuthError(e.toString()));
     }
   }
 
-  // Ubah parameter logout, kita tidak perlu mengirim token dari UI lagi
-  Future<void> logout() async {
+  Future<void> register({
+    required String name,
+    required String username,
+    required String email,
+    required String password,
+    required String rewritePassword,
+  }) async {
     emit(AuthLoading());
     try {
-      // Ambil refresh token dari brankas untuk dikirim ke backend
-      final refreshToken = await SecureStorageHelper.getRefreshToken() ?? '';
-
-      await repository.logout(refreshToken);
-
-      // 2. BERSIHKAN BRANKAS SAAT LOGOUT
-      await SecureStorageHelper.clearTokens();
-
-      emit(AuthUnauthenticated());
+      final data = await authRepository.register(
+        name: name,
+        username: username,
+        email: email,
+        password: password,
+        rewritePassword: rewritePassword,
+      );
+      emit(AuthAuthenticated(data['role']));
     } catch (e) {
-      emit(AuthError(_cleanErrorMessage(e)));
+      emit(AuthError(e.toString()));
     }
-  }
-
-  String _cleanErrorMessage(Object error) {
-    return error.toString().replaceAll('Exception: ', '');
   }
 }

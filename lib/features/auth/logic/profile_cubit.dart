@@ -4,63 +4,39 @@ import 'profile_state.dart';
 
 class ProfileCubit extends Cubit<ProfileState> {
   final ProfileRepository repository;
-  ProfileCubit(this.repository) : super(ProfileInitial());
+  Map<String, dynamic>? _cachedData;
 
-  Future<void> loadAllData() async {
+  ProfileCubit({required this.repository}) : super(ProfileInitial());
+
+  Future<void> fetchProfile() async {
     emit(ProfileLoading());
     try {
-      final profile = await repository.getProfile();
-      final status = await repository.getBaristaStatus();
-      final vouchers = await repository.getVouchers();
-
-      emit(ProfileLoaded(profile, status['is_available'] ?? false, vouchers));
+      _cachedData = await repository.getUserProfile();
+      emit(ProfileLoaded(_cachedData!));
     } catch (e) {
-      emit(ProfileError(e.toString().replaceAll('Exception: ', '')));
+      emit(ProfileError(e.toString()));
     }
   }
 
-  Future<void> toggleStatus(bool newVal) async {
-    if (state is ProfileLoaded) {
-      final currState = state as ProfileLoaded;
-
-      // Optimistic Update
-      emit(ProfileLoaded(currState.profile, newVal, currState.vouchers));
-
-      try {
-        await repository.updateBaristaStatus(newVal);
-      } catch (e) {
-        emit(ProfileLoaded(currState.profile, !newVal, currState.vouchers));
-        emit(ProfileError(e.toString().replaceAll('Exception: ', '')));
-      }
-    }
-  }
-
-  // --- VOUCHER CRUD ACTIONS ---
-  Future<void> createVoucher(Map<String, dynamic> payload) async {
+  Future<void> updateProfile(String name, String username) async {
+    emit(ProfileLoading());
     try {
-      await repository.addVoucher(payload);
-      loadAllData(); // Refresh UI setelah berhasil disimpan
+      await repository.updateProfile(name, username);
+      emit(ProfileActionSuccess("Profile updated successfully!"));
+      fetchProfile(); // Refresh data
     } catch (e) {
-      emit(ProfileError(e.toString().replaceAll('Exception: ', '')));
+      emit(ProfileError(e.toString()));
+      if (_cachedData != null) emit(ProfileLoaded(_cachedData!)); // Return to previous state
     }
   }
 
-  // FUNGSI BARU UNTUK EDIT VOUCHER
-  Future<void> editVoucher(String id, Map<String, dynamic> payload) async {
+  Future<void> logout() async {
+    emit(ProfileLoading());
     try {
-      await repository.updateVoucher(id, payload);
-      loadAllData();
+      await repository.logout();
+      emit(ProfileLoggedOut());
     } catch (e) {
-      emit(ProfileError(e.toString().replaceAll('Exception: ', '')));
-    }
-  }
-
-  Future<void> deleteVoucher(String id) async {
-    try {
-      await repository.deleteVoucher(id);
-      loadAllData();
-    } catch (e) {
-      emit(ProfileError(e.toString().replaceAll('Exception: ', '')));
+      emit(ProfileLoggedOut()); // Tetap paksa logout di sisi UI
     }
   }
 }

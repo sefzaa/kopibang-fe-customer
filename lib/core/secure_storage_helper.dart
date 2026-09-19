@@ -1,33 +1,15 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageHelper {
-  static const _storage = FlutterSecureStorage();
+  final _storage = const FlutterSecureStorage();
 
-  static const _tokenKey = 'access_token';
-  static const _refreshKey = 'refresh_token';
-  static const _roleKey = 'role';
+  Future<void> saveToken(String token) async => await _storage.write(key: 'access_token', value: token);
+  Future<String?> getToken() async => await _storage.read(key: 'access_token');
+  Future<void> deleteToken() async => await _storage.delete(key: 'access_token');
 
-  static Future<void> saveAuthData(String access, String refresh, String role) async {
-    await _storage.write(key: _tokenKey, value: access);
-    await _storage.write(key: _refreshKey, value: refresh);
-    await _storage.write(key: _roleKey, value: role);
-  }
+  Future<void> saveRefreshToken(String token) async => await _storage.write(key: 'refresh_token', value: token);
+  Future<String?> getRefreshToken() async => await _storage.read(key: 'refresh_token');
+  Future<void> deleteRefreshToken() async => await _storage.delete(key: 'refresh_token');
 
-  static Future<String?> getAccessToken() async {
-    return await _storage.read(key: _tokenKey);
-  }
-
-  static Future<String?> getRole() async {
-    return await _storage.read(key: _roleKey);
-  }
-
-  static Future<void> clearTokens() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _refreshKey);
-    await _storage.delete(key: _roleKey);
-  }
-
-  static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshKey);
-  }
+  Future<void> clearAll() async => await _storage.deleteAll();
 }

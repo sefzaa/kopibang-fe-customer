@@ -2,35 +2,55 @@ import 'package:flutter/material.dart';
 
 class GlobalHeader extends StatelessWidget {
   final String title;
-  final VoidCallback? onProfileTap;
+  final String subtitle;
+  final bool centerText;
 
   const GlobalHeader({
-    super.key,
-    this.title = 'KopiBang',
-    this.onProfileTap,
-  });
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    this.centerText = false,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryBrown = const Color(0xFF3C2A21);
-    return Row(
+    return Column(
+      crossAxisAlignment: centerText ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
-        Icon(Icons.coffee_outlined, color: primaryBrown, size: 28),
-        const SizedBox(width: 8),
+        // Logo Section
+        Row(
+          mainAxisAlignment: centerText ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: const [
+            Icon(Icons.coffee_outlined, color: Color(0xFF3E2723), size: 24),
+            SizedBox(width: 8),
+            Text(
+              '111 Coffee',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF3E2723),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+        // Title & Subtitle Section
         Text(
           title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: primaryBrown,
+          textAlign: centerText ? TextAlign.center : TextAlign.left,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C3E50),
           ),
         ),
-        const Spacer(),
-        GestureDetector(
-          onTap: onProfileTap,
-          child: const CircleAvatar(
-            radius: 20,
-            backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=Admin&background=3C2A21&color=fff'),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          textAlign: centerText ? TextAlign.center : TextAlign.left,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
           ),
         ),
       ],

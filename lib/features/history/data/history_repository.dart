@@ -1,37 +1,22 @@
 import 'package:dio/dio.dart';
-import '../../../core/api_client.dart';
+import 'package:kopibang_customer/core/api_client.dart';
 
 class HistoryRepository {
-  final ApiClient apiClient;
+  final ApiClient _apiClient = ApiClient();
 
-  HistoryRepository(this.apiClient);
-
-  Future<Map<String, dynamic>> getHistory({
-    int page = 1,
-    int limit = 10,
-    String filter = 'today',
-    String? startDate,
-    String? endDate,
-  }) async {
+  Future<Map<String, dynamic>> fetchOrderHistory(int page, int limit) async {
     try {
-      // Siapkan query parameter dasar
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'limit': limit,
-        'filter': filter,
-      };
-
-      // Tambahkan start_date dan end_date jika filter 'custom' dipilih
-      if (startDate != null && startDate.isNotEmpty) queryParams['start_date'] = startDate;
-      if (endDate != null && endDate.isNotEmpty) queryParams['end_date'] = endDate;
-
-      final response = await apiClient.dio.get(
-        '/admin/orders/history',
-        queryParameters: queryParams,
+      final response = await _apiClient.dio.get(
+        '/user/orders/history',
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+        },
       );
+      // Mengembalikan map berisi 'orders' dan 'meta'
       return response.data['data'];
-    } catch (e) {
-      throw Exception('Gagal mengambil history transaksi');
+    } on DioException catch (e) {
+      throw e.response?.data['message'] ?? 'Gagal memuat riwayat pesanan';
     }
   }
 }

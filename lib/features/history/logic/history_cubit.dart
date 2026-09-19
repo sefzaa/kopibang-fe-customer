@@ -4,44 +4,46 @@ import 'history_state.dart';
 
 class HistoryCubit extends Cubit<HistoryState> {
   final HistoryRepository repository;
-  HistoryCubit(this.repository) : super(HistoryInitial());
+  int _currentPage = 1;
+  final int _limit = 10; // Ambil 10 data per request
 
-  Future<void> fetchHistory({
-    bool isRefresh = false,
-    String filter = 'this_month',
-    int limit = 10,
-    String? startDate,
-    String? endDate,
-  }) async {
+  HistoryCubit({required this.repository}) : super(HistoryInitial());
+
+  Future<void> loadHistory({bool isRefresh = false}) async {
+    if (isRefresh) {
+      _currentPage = 1;
+    }
+
+    final currentState = state;
+    var oldOrders = <dynamic>[];
+
+    // Jika bukan refresh dan data sedang dimuat, abaikan agar tidak dobel request
+    if (currentState is HistoryLoading && !isRefresh) return;
+
+    if (currentState is HistoryLoaded) {
+      if (!isRefresh && currentState.hasReachedMax) return;
+      oldOrders = currentState.orders;
+    }
+
+    emit(HistoryLoading(oldOrders, isFirstFetch: _currentPage == 1));
+
     try {
-      final currentState = state;
-      int page = 1;
-      List<dynamic> oldOrders = [];
+      final data = await repository.fetchOrderHistory(_currentPage, _limit);
+      final List<dynamic> newOrders = data['orders'] ?? [];
+      final Map<String, dynamic> meta = data['meta'] ?? {};
 
-      if (!isRefresh && currentState is HistoryLoaded) {
-        if (currentState.hasReachedMax) return;
-        page = currentState.currentPage + 1;
-        oldOrders = currentState.orders;
+      final int totalPages = meta['total_pages'] ?? 1;
+      final bool hasReachedMax = _currentPage >= totalPages;
+
+      if (isRefresh) {
+        emit(HistoryLoaded(newOrders, hasReachedMax: hasReachedMax));
       } else {
-        emit(HistoryLoading());
+        emit(HistoryLoaded(oldOrders + newOrders, hasReachedMax: hasReachedMax));
       }
 
-      final data = await repository.getHistory(
-        page: page,
-        limit: limit,
-        filter: filter,
-        startDate: startDate,
-        endDate: endDate,
-      );
-      final newOrders = data['orders'] as List<dynamic>? ?? [];
-
-      bool hasReachedMax = newOrders.length < limit;
-
-      emit(HistoryLoaded(
-        [...oldOrders, ...newOrders],
-        hasReachedMax: hasReachedMax,
-        currentPage: page,
-      ));
+      if (!hasReachedMax) {
+        _currentPage++;
+      }
     } catch (e) {
       emit(HistoryError(e.toString()));
     }
